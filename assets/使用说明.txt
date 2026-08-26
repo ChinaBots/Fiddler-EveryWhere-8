@@ -1,0 +1,29 @@
+=== Fiddler Everywhere 补丁版使用说明 ===
+
+【第一次运行前 - 必须做】
+1. 任务管理器结束所有残留的 "Fiddler Everywhere" 进程
+2. 右键 "安装hosts.bat" → 以管理员身份运行 (只需一次)
+   作用: 把 api.getfiddler.be / identity.getfiddler.be 指向 127.0.0.1
+3. 运行 "Fiddler Everywhere.exe"
+
+【登录】
+登录界面点击 Google 登录即可 (本地伪服务器返回模拟账号)
+
+【登录状态说明】
+- 登录 token 保存在 %APPDATA%\Fiddler Everywhere (卸载程序不会清除)
+- 想彻底重置登录状态: 删除该文件夹后重新启动
+- 切换回官方版: 先运行 "卸载hosts.bat", 再删除上面的文件夹, 用官方安装包重装
+
+【切换回官方版】
+1. 任务管理器结束 Fiddler Everywhere 进程
+2. 右键管理员运行 "卸载hosts.bat"
+3. 删除 %APPDATA%\Fiddler Everywhere (可选, 清除伪登录状态)
+4. 安装官方版
+
+【排查问题】
+程序目录下的 fe-patch.log 记录了启动全流程, 反馈问题时附上该文件
+
+【卸载】
+1. 删除整个程序文件夹
+2. 右键管理员运行 "卸载hosts.bat" 清理 hosts
+3. 删除 %APPDATA%\Fiddler Everywhere (可选)

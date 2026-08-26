@@ -1,0 +1,7 @@
+build/
+*.zip
+*.exe
+*.7z
+node_modules/
+__pycache__/
+.DS_Store
