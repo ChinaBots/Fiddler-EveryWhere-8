@@ -52,13 +52,5 @@ jobs:
           else
             TAG="v${VERSION}-r${{ github.run_number }}"
           fi
-          gh release create "$TAG" \
-            --title "Fiddler Everywhere ${VERSION} 补丁版" \
-            --notes "自动构建产物。
-
-**验证版本**: ${VERSION}
-**使用前必读**: 见压缩包内「使用说明.txt」
-
-更新日志:
-- 首次发布" \
-            "build/Fiddler-Everywhere-${VERSION}-Patched.zip"
+          NOTES="$(printf '自动构建产物。\n\n验证版本: %s\n使用前必读: 压缩包内「使用说明.txt」\n\n适配指南见 docs/ADAPTATION.md' "$VERSION")"
+          gh release create "$TAG" --title "Fiddler Everywhere ${VERSION} 补丁版" --notes "$NOTES" "build/Fiddler-Everywhere-${VERSION}-Patched.zip"
