@@ -80,13 +80,14 @@ try {
   process.on('uncaughtException', e => __d_w('uncaughtException: ' + (e && (e.stack || e.message))));
 } catch(e) {}
 DIAG
-cat "${OUTDIR}/diag.js" "${SCRIPT_DIR}/server/index.js" "${APPDIR}/resources/app/out/main.original.js" \
+cat "${OUTDIR}/diag.js" "${SCRIPT_DIR}/server/index.js" "${SCRIPT_DIR}/server/fe-i18n.js" "${APPDIR}/resources/app/out/main.original.js" \
   > "${APPDIR}/resources/app/out/main.js"
 rm -f "${OUTDIR}/diag.js"
 
-# ---- mock 文件 + fiddler.dll ----
-echo "[6/8] 复制 mock 响应 + Yui-patch fiddler.dll ..."
+# ---- mock 文件 + 汉化语言包 + fiddler.dll ----
+echo "[6/8] 复制 mock 响应 + 汉化语言包 + Yui-patch fiddler.dll ..."
 cp -r "${SCRIPT_DIR}/server/file" "${APPDIR}/resources/app/out/file"
+cp -r "${SCRIPT_DIR}/lang" "${APPDIR}/resources/app/lang"
 cp "${OUTDIR}/fiddler.dll" "${APPDIR}/fiddler.dll"
 
 # ---- SDK DLL 预补丁 (运行时还会幂等补一次) ----

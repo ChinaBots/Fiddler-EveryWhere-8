@@ -26,6 +26,27 @@ npm install -g @electron/asar
 # 产物: build/Fiddler-Everywhere-8.0.2-Patched.zip
 ```
 
+## 汉化 (v1.1 新增)
+
+**即放即用**: 产物自带简体中文语言包（`resources/app/lang/zh-CN.json`），启动后点击 UI **右上角悬浮按钮**即可中/英切换，无需重启。
+
+- 语言包放指定目录即生效: 任何 `*.json` 语言包（key=英文原文，value=译文）放进 `resources/app/lang/` 都会出现在切换菜单
+- 编辑语言包后点击切换按钮即可刷新，无需重启
+- 安装目录磁盘文件零修改——全部在内存中替换，不触碰反篡改校验
+- 自定义词条 / 新增语言: 直接编辑或新增 JSON 文件
+- 详细说明见产物内 `resources/app/lang/README.txt`
+
+## AI 自定义端点 (v1.1 新增)
+
+Fiddler 的 AI 功能（会话解释 / 规则生成 / Ask AI）内置 OpenAI / Anthropic SDK，但端点硬编码官方服务。本补丁利用 SDK 尊重 `OPENAI_BASE_URL` / `ANTHROPIC_BASE_URL` 环境变量的特性，支持把 AI 流量指向你自己的 OpenAI 兼容端点：
+
+1. 把 `resources/app/lang/ai-endpoint.json.example` 改名为 `ai-endpoint.json`
+2. 修改 `baseUrl` / `apiKey` / `provider`（one-api、new-api、自建网关均可）
+3. 可选：`models` 数组覆盖设置页的模型下拉清单（支持自定义模型名）
+4. 重启 Fiddler
+
+> 对照方案：原生 "Azure OpenAI" provider 也支持自定义 URI，但要求 Azure 协议格式（`/openai/deployments/{name}/...`）。通用 OpenAI 兼容网关建议用本方案。
+
 ## 工作原理
 
 ```

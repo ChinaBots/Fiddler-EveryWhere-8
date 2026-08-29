@@ -1,0 +1,15 @@
+{
+  "!comment": "AI 自定义端点配置模板。把本文件改名为 ai-endpoint.json 并按需修改即可生效 (Fiddler 重启后加载)。",
+  "!how": "原理: Fiddler 的 AI 功能使用内置 OpenAI/Anthropic SDK, 且未显式指定 baseURL, 因此尊重 OPENAI_BASE_URL / ANTHROPIC_BASE_URL 环境变量。本模块在应用启动前注入这些变量, 使 AI 流量直达你的自定义端点 (OpenAI 兼容网关 / 反代 / 自建服务均可)。",
+
+  "enabled": true,
+  "provider": "openai",
+  "baseUrl": "https://your-gateway.example.com/v1",
+  "apiKey": "sk-xxxxxx-your-key",
+
+  "!models": "可选。覆盖设置页 AI 模型下拉清单 (原清单硬编码为官方模型名, 无法输入自定义名)。给出数组后, 下拉中将显示你的自定义模型名。",
+  "models": ["gpt-5.6-sol", "deepseek-chat", "glm-4.6"],
+
+  "!provider-anthropic": "若使用 Anthropic 协议端点, 将 provider 改为 anthropic; authToken 项可选 (ANTHROPIC_AUTH_TOKEN)。",
+  "!extraEnv": "可选。需要附加环境变量时使用, 例如 Azure 协议: {\"OPENAI_API_VERSION\": \"2024-10-21\"}"
+}
