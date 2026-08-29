@@ -177,6 +177,13 @@ function tmpPathFor(origPath, tag) {
 /* ---------------- file:// 协议拦截 ---------------- */
 
 function installFileInterceptor() {
+  // 逃生开关: 存在 lang/disabled 文件则不装拦截器 (回到官方 file:// 行为)
+  try {
+    if (fs.existsSync(path.join(LANG_DIR, 'disabled'))) {
+      log('escape hatch active (lang/disabled), interceptor NOT installed');
+      return;
+    }
+  } catch (_) {}
   const lang = currentLang();
   const aiCfg0 = loadAiConfig();
   // 缓存标签: 语言或 AI 配置变化后强制重建临时文件
@@ -184,40 +191,50 @@ function installFileInterceptor() {
   let served = 0;
   log(`interceptor installed, lang="${lang || '(raw)'}"`);
 
+  // 关键: 用 fileURLToPath 解析 file:// URL (正确处理 Windows 盘符/空格%20),
+  // new URL().pathname 在 Windows 会给出 "/C:/xxx%20yyy" 这种坏路径 — 曾导致全 UI 加载失败
+  const { fileURLToPath } = require('url');
+  const toPath = (u) => {
+    const clean = String(u || '').split('?')[0].split('#')[0];
+    let p = fileURLToPath(clean); // throws on malformed
+    // 跨平台防御: 异常形态 "/C:/..." → "C:/..." (Windows 盘符)
+    if (/^\/[A-Za-z]:\//.test(p)) p = p.slice(1);
+    return p;
+  };
+
   protocol.interceptFileProtocol('file', (request, callback) => {
     try {
-      let urlPath = '';
-      try { urlPath = decodeURIComponent(new URL(request.url).pathname); }
-      catch (_) { /* fallthrough */ }
+      let filePath = '';
+      try { filePath = toPath(request.url); }
+      catch (e) { log(`url->path failed: ${String(request.url).slice(0, 80)} : ${e.message}`); }
 
-      const isDist = urlPath && path.resolve(urlPath).startsWith(DIST_DIR);
-      const base = path.basename(urlPath || '');
-      const isBundle = /^main-.*\.js$/.test(base) || base === 'index.html';
-
-      // 切换语言信号: index.html?fe-i18n=xx
+      // 切换语言信号: index.html?fe-i18n=xx (query 已在 toPath 前剥离)
       const m = /[?&]fe-i18n=([A-Za-z0-9_-]+)/.exec(request.url || '');
       if (m && m[1]) {
         const want = m[1] === 'en' ? '' : m[1];
         if (want !== currentLang()) setCurrentLang(want);
-        // 进程内即时重建替换器; 前端整页 reload 后拦截层即按新语言输出
         global.__feI18nRebuild && global.__feI18nRebuild();
       }
 
+      if (!filePath) return callback('');
+
+      const isDist = filePath.startsWith(DIST_DIR);
+      const base = path.basename(filePath);
+      const isBundle = /^main-.*\.js$/.test(base) || base === 'index.html';
+
       if (!isDist || !isBundle || !global.__feI18nApply) {
-        // 透传: 返回磁盘原路径 (去掉查询串)
-        const clean = (request.url || '').split('?')[0].replace(/^file:\/\/\//, '')
-          .replace(/\/([A-Za-z]:\/)/, '$1');
-        return callback(clean);
+        // 透传: fileURLToPath 的结果即干净本地路径, 直接交回
+        return callback(filePath);
       }
 
       // 内存替换管线
       const stat = {};
-      let src = fs.readFileSync(urlPath, 'utf-8');
+      let src = fs.readFileSync(filePath, 'utf-8');
       const r = global.__feI18nApply(src);
       src = r.src;
       stat.replacements = r.count;
       src = applyModelOverride(src, global.__feI18nAiCfg, stat);
-      const out = tmpPathFor(urlPath, tag);
+      const out = tmpPathFor(filePath, tag);
       fs.writeFileSync(out, src, 'utf-8');
       served++;
       log(`served ${base} via memory-rewrite (${stat.replacements} repl, models o=${stat.modelsOpenAI || 0}/a=${stat.modelsAnthropic || 0}), served=${served}`);
@@ -225,10 +242,13 @@ function installFileInterceptor() {
     } catch (e) {
       log(`interceptor error: ${e.message}`);
       try {
-        const clean = (request.url || '').split('?')[0].replace(/^file:\/\/\//, '')
-          .replace(/\/([A-Za-z]:\/)/, '$1');
-        return callback(clean);
-      } catch (_) { return callback(request.url); }
+        // 兜底: 尽力还原出原路径, 保证请求不被拦截层杀死
+        const fallback = (() => {
+          try { return toPath(String(request.url || '').split('?')[0].split('#')[0]); }
+          catch (_) { return ''; }
+        })();
+        return callback(fallback);
+      } catch (_) { /* 放弃, 交由 Electron 默认失败处理 */ }
     }
   });
 }
@@ -244,7 +264,7 @@ const SWITCHER_JS = `
   var box = document.createElement('div');
   box.id = 'fe-i18n-switcher';
   var ACC = '#e6001a', W = 'translateZ(0)';
-  box.style.cssText = 'position:fixed;top:8px;right:8px;z-index:2147483647;display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-family:Segoe UI,system-ui,sans-serif;' + W;
+  box.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:2147483647;display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-family:Segoe UI,system-ui,sans-serif;' + W;
   var btn = document.createElement('div');
   btn.textContent = CUR ? (CUR === 'zh-CN' ? '中' : CUR.toUpperCase().slice(0,2)) : 'EN';
   btn.title = '语言 / Language';
